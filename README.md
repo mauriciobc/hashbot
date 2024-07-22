@@ -1,0 +1,2 @@
+# hashbot
+Mastodon-hashtag-bot
