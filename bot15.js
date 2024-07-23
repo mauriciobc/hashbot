@@ -105,7 +105,7 @@ async function fetchToots(hashtag) {
 }
 
 async function fetchTootsFromAPI(hashtag, params) {
-    const url = `/timelines/tag/${hashtag}`;
+    const url = `timelines/tag/${hashtag}`;
     console.log(`Buscando ${url}...`);
     const response = await M.get(url, params);
     return response;
@@ -119,7 +119,8 @@ function filterTootsByDate(toots, date) {
 // Function to get hashtag usasge for the current day
 async function getHashtagUse(hashtag) {
     try {
-        const response = await M.get(`/tags/${hashtag}`);
+        const response = await M.get(`tags/${hashtag}`);
+        //console.table(response.data.history);
         return response.data.history;
     } catch (error) {
         console.error(`Erro ao obter dados de uso da hashtag para ${hashtag}:`, error);
@@ -150,12 +151,16 @@ const generateTootText = async (hashtag, toots) => {
             generateTootLink(id),
         ]))
     ]);
+    
+    const hist = await getHashtagUse(hashtag);
+    const historicUses = await calculateSumOfUses(hist);
 
     const tootText = [
-        `Hashtag: #${hashtag}\n\n`,
-        `Total de posts: ${toots.length}\n`,
+        `Tag do dia: #${hashtag}\n\n`,
+        `Uso da tag na semana: ${historicUses}\n`,
         `Participantes: ${history?.accounts || 'unknown'}\n`,
         `Posts hoje: ${history?.uses || 'unknown'}\n\n`,
+        `Principais posts de hoje:\n\n`,
         ...topTootDetails.map(([
             account, followers_count, favourites_count, reblogs_count, relevanceScore, link
         ], i) => [
@@ -172,6 +177,24 @@ const generateTootText = async (hashtag, toots) => {
     return tootText;
 }
 
+// Function to calculate sum of uses in history object
+async function calculateSumOfUses(hist) {
+    if (!hist) {
+        return 0;
+    }
+
+    let totalUses = 0;
+
+    for (const entry of hist) {
+        if (entry && entry.uses) {
+            totalUses += parseInt(entry.uses);
+        }
+    }
+
+    return totalUses;
+}
+
+// Function to sort toots by relevance
 async function sortTootsByRelevance(toots) {
     return Promise.all(toots.map(calculateRelevance))
         .then(relevanceScores => relevanceScores.sort((a, b) => b.relevanceScore - a.relevanceScore));
@@ -182,100 +205,49 @@ async function removeIgnoredToots(toots) {
     return toots.filter(toot => !ignoredAccounts.includes(toot.account.username));
 }
 
-
 // Function to create toot
-// async function createToot(tootText) {
-//     console.log('Entering createToot function');
-//     console.log('tootText:', tootText, tootText.length);
-
-//     const params = {
-//         status: tootText,
-//         idempotency_key: `${Date.now()}${Math.random()}`,
-//         media_ids: [],
-//         poll: {},
-//         in_reply_to_id: '',
-//         sensitive: false,
-//         spoiler_text: '',
-//         visibility: 'public',
-//         language: 'pt',
-//         scheduled_at: '',
-//     }
-
-//     try {
-//         console.log('Validating tootText');
-//         if (typeof tootText !== 'string') {
-//             throw new Error('Toot text must be a string');
-//         }
-//         if (tootText === '') {
-//             throw new Error('Toot text cannot be empty');
-//         }
-
-//         console.log('Attempting to create toot');
-//         await M.post('statuses', params, {
-//             headers: {
-//                 'Authorization': `Bearer ${process.env.ACCESS_TOKEN}`,
-//             },
-//         }).catch(error => {
-//             console.error('Error creating toot:', error);
-//             throw error;
-//         });
-//         console.log('Toot created successfully!');
-//     } catch (error) {
-//         console.error('Error creating toot:', error);
-//     }
-
-//     console.log('Exiting createToot function');
-// }
-
-
-
-// Refactored createToot function to comply with the specified rules
 async function createToot(tootText) {
-  console.log('Entering createToot function');
-  console.log('tootText:', tootText, tootText.length);
-
-  if (typeof tootText !== 'string') {
-    throw new Error('Toot text must be a string');
-  }
-
-  if (tootText.trim() === '') {
-    throw new Error('Toot text cannot be empty');
-  }
-
-  try {
-    console.log('Attempting to create toot');
-    const response = await M.post('statuses', {
-      status: tootText,
-      idempotency_key: `${Date.now()}${Math.random()}`,
-      media_ids: [],
-      poll: {},
-      in_reply_to_id: '',
-      sensitive: false,
-      spoiler_text: '',
-      visibility: 'public',
-      language: 'pt',
-      scheduled_at: '',
-    }, {
-      headers: {
-        'Authorization': `Bearer ${process.env.ACCESS_TOKEN}`,
-      },
-    });
-
-    if (!response || !response.data) {
-      throw new Error('Invalid response data from Mastodon API');
-    }
-
-    console.log('Toot created successfully!');
-    console.log('Toot details:', response.data);
-  } catch (error) {
-    console.error('Error creating toot:', error);
-    throw error;
-  }
-
-  console.log('Exiting createToot function');
-}
+    console.log('Entering createToot function');
+    console.log('tootText:', tootText, tootText.length);
   
-
+    if (typeof tootText !== 'string') {
+      throw new Error('Toot text must be a string');
+    }
+  
+    if (tootText.trim() === '') {
+      throw new Error('Toot text cannot be empty');
+    }
+  
+    try {
+      console.log('Attempting to create toot');
+      const response = await M.post('statuses', {
+        status: tootText,
+        sensitive: false,
+        visibility: 'public',
+        language: 'pt',
+      }, {
+        headers: {
+          'Authorization': `Bearer ${process.env.ACCESS_TOKEN}`,
+        },
+      });
+      
+      //console.log('Toot created successfully!');
+      //console.log('Toot response:', response);
+      //console.log('Toot details:', response.data);
+      if (!response || !response.data) {
+        throw new Error('Invalid response data from Mastodon API');
+      }
+  
+      
+    } catch (error) {
+      console.error('Error creating toot:', error);
+      throw error;
+    }
+  
+    console.log('Exiting createToot function');
+  }
+  
+  
 // Main function to fetch, process, and print toots
 async function main() {
     const hashtag = hashtags[new Date().getDay()];
