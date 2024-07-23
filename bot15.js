@@ -40,13 +40,10 @@ async function calculateRelevance(toot) {
         const w_B = 0.3; // Weight for boosts
         const w_N = 0.3; // Weight for followers
         const relevanceScore = Math.round((w_F * toot.favourites_count + w_B * toot.reblogs_count + w_N * (toot.account.followers_count || 0)) * 10) / 10;
-        // Log 
-        // console.log(toot.favourites_count, toot.reblogs_count, (toot.account.followers_count || 0), relevanceScore);
         const result = {
             ...toot,
             relevanceScore,
         };
-        //console.log(result);
         return result;
     } catch (error) {
         console.error(`Erro ao calcular a pontuação de relevância para o toot ${toot.id || 'unknown'}:`, error);
@@ -96,7 +93,6 @@ async function fetchToots(hashtag) {
 
         console.log(`Posts obtidos: ${toots.length}`);
         console.log(`Progresso: ${progress} / ${toots.length}`);
-        //console.log(toots)
         return toots;
     } catch (error) {
         console.error('Erro ao obter posts:', error);
@@ -120,7 +116,6 @@ function filterTootsByDate(toots, date) {
 async function getHashtagUse(hashtag) {
     try {
         const response = await M.get(`tags/${hashtag}`);
-        //console.table(response.data.history);
         return response.data.history;
     } catch (error) {
         console.error(`Erro ao obter dados de uso da hashtag para ${hashtag}:`, error);
@@ -231,13 +226,9 @@ async function createToot(tootText) {
         },
       });
       
-      //console.log('Toot created successfully!');
-      //console.log('Toot response:', response);
-      //console.log('Toot details:', response.data);
       if (!response || !response.data) {
         throw new Error('Invalid response data from Mastodon API');
       }
-  
       
     } catch (error) {
       console.error('Error creating toot:', error);
